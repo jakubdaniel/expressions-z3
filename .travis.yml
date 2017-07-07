@@ -1,0 +1,12 @@
+language: haskell
+ghc: 8.0.2
+
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install wget
+    - wget https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
+    - unzip z3-4.4.1-x64-ubuntu-14.04.zip
+
+install:
+    - cabal sandbox init
+    - cabal install --dependencies-only --extra-include-dirs=$PWD/z3-4.4.1-x64-ubuntu-14.04/include --extra-lib-dirs=$PWD/z3-4.4.1-x64-ubuntu-14.04/bin

@@ -1,0 +1,11 @@
+**
+!.gitignore
+!.travis.yml
+!ChangeLog.md
+!README.md
+!LICENSE
+!expressions-z3.cabal
+!src/
+!src/Data/
+!src/Data/Expression/
+!src/Data/Expression/Z3.hs
