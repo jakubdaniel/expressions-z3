@@ -1,5 +1,5 @@
 name:                expressions-z3
-version:             0.1.1
+version:             0.1.2
 synopsis:            Encode and Decode expressions from Z3 ASTs
 description:
   A simple interface for converting expressions back and forth between pure
@@ -62,10 +62,10 @@ source-repository head
 
 library
   exposed-modules:     Data.Expression.Z3
-  build-depends:       base >=4.9 && <4.11,
-                       containers >=0.5 && <0.5.11,
+  build-depends:       base >=4.9 && <4.12,
+                       containers >=0.5 && <0.6,
                        expressions >=0.1 && <0.2,
-                       singletons >=2.2 && <2.4,
+                       singletons >=2.2 && <2.5,
                        transformers >=0.5.2 && <0.6,
                        z3 >=4.1.2 && <4.2
   hs-source-dirs:      src

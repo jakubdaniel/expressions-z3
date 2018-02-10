@@ -1,5 +1,5 @@
 language: haskell
-ghc: 8.0.2
+ghc: 8.2.1
 
 before_install:
     - sudo apt-get -qq update

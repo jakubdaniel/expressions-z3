@@ -5,6 +5,7 @@
 !README.md
 !LICENSE
 !expressions-z3.cabal
+!stack.yaml
 !src/
 !src/Data/
 !src/Data/Expression/
