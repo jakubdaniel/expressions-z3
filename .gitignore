@@ -10,3 +10,5 @@
 !src/Data/
 !src/Data/Expression/
 !src/Data/Expression/Z3.hs
+!test/
+!test/Main.hs
