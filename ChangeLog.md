@@ -1,5 +1,9 @@
 # Revision history for expressions-z3
 
+## 0.1.3
+
+* Bump dependencies
+
 ## 0.1.2
 
 * Bump dependencies
