@@ -1,17 +1,17 @@
 language: haskell
-ghc: 8.2.1
+ghc: 8.4.2
 
 before_install:
     - sudo apt-get -qq update
     - sudo apt-get install wget
-    - wget https://github.com/Z3Prover/z3/releases/download/z3-4.4.1/z3-4.4.1-x64-ubuntu-14.04.zip
-    - unzip z3-4.4.1-x64-ubuntu-14.04.zip
-    - sudo cp z3-4.4.1-x64-ubuntu-14.04/bin/libz3.so /usr/lib/
-    - sudo cp z3-4.4.1-x64-ubuntu-14.04/include/* /usr/include/
+    - wget https://github.com/Z3Prover/z3/releases/download/z3-4.6.0/z3-4.6.0-x64-ubuntu-14.04.zip
+    - unzip z3-4.6.0-x64-ubuntu-14.04.zip
+    - sudo cp z3-4.6.0-x64-ubuntu-14.04/bin/libz3.so /usr/lib/
+    - sudo cp z3-4.6.0-x64-ubuntu-14.04/include/* /usr/include/
 
 install:
     - cabal sandbox init
-    - cabal install --dependencies-only --enable-tests --extra-include-dirs=$PWD/z3-4.4.1-x64-ubuntu-14.04/include --extra-lib-dirs=$PWD/z3-4.4.1-x64-ubuntu-14.04/bin
+    - cabal install --dependencies-only --enable-tests --extra-include-dirs=$PWD/z3-4.6.0-x64-ubuntu-14.04/include --extra-lib-dirs=$PWD/z3-4.6.0-x64-ubuntu-14.04/bin
 
 script:
     - cabal configure --enable-tests && cabal build && cabal test

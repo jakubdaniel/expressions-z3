@@ -16,7 +16,6 @@ import Control.Applicative hiding (Const)
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
-import Control.Monad.Trans.List
 import Control.Monad.Trans.State
 import Data.Expression
 import Data.List hiding (and, or)
@@ -24,6 +23,7 @@ import Data.Maybe
 import Data.Proxy
 import Data.Singletons
 import Data.Singletons.Decide
+import ListT hiding (head, null)
 import Prelude hiding (and, or, not)
 
 import qualified Data.Functor.Const as F
@@ -363,6 +363,6 @@ ifromZ3 p r a = do
         return e
 
 fromZ3 :: forall (f :: (Sort -> *) -> Sort -> *) (s :: Sort) z3. ( IFromZ3 f, Z3.MonadZ3 z3, SingI s ) => Z3.AST -> z3 (IFix f s)
-fromZ3 a = let r = ifromZ3 (Proxy :: Proxy f) r in head' <=< fmap (mapMaybe toStaticallySorted) . runListT . flip evalStateT M.empty . unwrap . r $ a where
+fromZ3 a = let r = ifromZ3 (Proxy :: Proxy f) r in head' <=< fmap (mapMaybe toStaticallySorted) . toList . flip evalStateT M.empty . unwrap . r $ a where
     head' (h : _) = return h
     head' _       = Z3.astToString a >>= \s -> error ("couldn't re-encode Z3 AST: " ++ s)
