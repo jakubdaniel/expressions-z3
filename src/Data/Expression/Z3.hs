@@ -10,7 +10,24 @@
            , TypeOperators
            , UndecidableInstances #-}
 
-module Data.Expression.Z3 ( IToZ3, toZ3, IFromZ3, fromZ3 ) where
+module Data.Expression.Z3 ( IToZ3
+                          , toZ3
+                          , IFromZ3
+                          , fromZ3
+
+                          -- Z3 API wrappers
+                          , assert
+                          , model
+                          , unsatcore
+                          , interpolate
+                          , eliminate
+
+                          -- re-export Z3 API
+                          , Z3.local
+                          , Z3.push
+                          , Z3.pop
+                          , Z3.check
+                          , Z3.Result(..) ) where
 
 import Control.Applicative hiding (Const)
 import Control.Monad
@@ -366,3 +383,62 @@ fromZ3 :: forall (f :: (Sort -> *) -> Sort -> *) (s :: Sort) z3. ( IFromZ3 f, Z3
 fromZ3 a = let r = ifromZ3 (Proxy :: Proxy f) r in head' <=< fmap (mapMaybe toStaticallySorted) . toList . flip evalStateT M.empty . unwrap . r $ a where
     head' (h : _) = return h
     head' _       = Z3.astToString a >>= \s -> error ("couldn't re-encode Z3 AST: " ++ s)
+
+
+--
+-- Z3 API
+--
+
+assert :: forall (f :: (Sort -> *) -> Sort -> *) z3. ( IToZ3 f, Z3.MonadZ3 z3 ) => IFix f 'BooleanSort -> z3 ()
+assert = Z3.assert <=< toZ3
+
+model :: forall (f :: (Sort -> *) -> Sort -> *) (s :: Sort) z3.
+         ( IToZ3 f, IFromZ3 f, IShow f, Z3.MonadZ3 z3, SingI s ) => IFix f s -> z3 (IFix f s)
+model e = do
+    e' <- toZ3 e
+    r  <- Z3.getModel
+    case r of
+        (Z3.Sat, Just m) -> do
+            v <- Z3.modelEval m e' True
+            case v of
+                Just v' -> fromZ3 v'
+                Nothing -> error $ "failed valuating " ++ show e
+        (Z3.Unsat, _) -> error "failed extracting model from an unsatisfiable query"
+        _             -> error "failed extracting model"
+
+unsatcore :: forall (f :: (Sort -> *) -> Sort -> *) z3. ( IToZ3 f, Z3.MonadZ3 z3 ) => [IFix f 'BooleanSort] -> z3 [IFix f 'BooleanSort]
+unsatcore fs = do
+    as <- mapM toZ3 fs
+    ps <- mapM (const $ Z3.mkFreshBoolVar "p") fs
+    zipWithM_ (\a p -> Z3.assert =<< Z3.mkIff a p) as ps
+    r <- Z3.checkAssumptions ps
+    case r of
+        Z3.Sat   -> error "failed extracting unsat core from a satisfiable query"
+        Z3.Unsat -> map (M.fromList (zip ps fs) M.!) <$> Z3.getUnsatCore
+        _        -> error "failed extracting unsat core"
+
+interpolate :: forall (f :: (Sort -> *) -> Sort -> *) z3.
+               ( IToZ3 f, IFromZ3 f, Z3.MonadZ3 z3 ) => [IFix f 'BooleanSort] -> z3 [IFix f 'BooleanSort]
+interpolate []        = return []
+interpolate [_]       = return []
+interpolate (f : fs)  = do
+    f'  <- toZ3 f
+    fs' <- mapM toZ3 fs
+    q   <- foldM (\a g -> Z3.mkAnd . (: [g]) =<< Z3.mkInterpolant a) f' fs'
+    r   <- Z3.local $ Z3.computeInterpolant q =<< Z3.mkParams
+
+    case r of
+        Just (Left  _ ) -> error "failed extracting interpolants from a satisfiable query"
+        Just (Right is) -> mapM fromZ3 is
+        _               -> error "failed extracting interpolants"
+
+eliminate :: forall (f :: (Sort -> *) -> Sort -> *) z3.
+             ( IToZ3 f, IFromZ3 f, Z3.MonadZ3 z3 ) => IFix f 'BooleanSort -> z3 (IFix f 'BooleanSort)
+eliminate f = do
+    g <- Z3.mkGoal True True False
+    Z3.goalAssert g =<< toZ3 f
+    qe  <- Z3.mkTactic "qe"
+    aig <- Z3.mkTactic "aig"
+    t   <- Z3.andThenTactic qe aig
+    a   <- Z3.applyTactic t g
+    fromZ3 =<< Z3.mkAnd =<< Z3.getGoalFormulas =<< Z3.getApplyResultSubgoal a 0

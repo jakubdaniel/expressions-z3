@@ -5,7 +5,8 @@
 # Usage
 
     λ> :set -XDataKinds -XFlexibleContexts -XKindSignatures -XRankNTypes -XTypeInType -XTypeOperators
-    λ> :m Z3.Monad Data.Expression Data.Expression.Z3 Data.Singletons
+    λ> :m Data.Expression Data.Expression.Z3 Data.Singletons
+    λ> import Z3.Monad hiding (assert)
 
 ## Encode expression in Z3 AST
 
@@ -32,3 +33,29 @@
              =<< mkAdd [x, y] :: Z3 (Lia 'BooleanSort)
     :}
     (forall ((x : int)) (exists ((y : int)) (= 0 (+ (x : int) (y : int)))))
+
+## Z3 API
+
+    λ> :{
+    evalZ3 $ do
+      let x', y' :: forall f. VarF :<: f => IFix f 'IntegralSort
+          x' = var "x"
+          y' = var "y"
+
+          x, y :: Lia 'IntegralSort
+          x = x'
+          y = y'
+
+      m <- local $ do
+        assert (x .=. cnst 42)
+        model x
+
+      uc <- unsatcore [ x .=. cnst 2, x .=. cnst 1, y .=. cnst 2, x ./=. y ]
+
+      i <- interpolate [ x .=. cnst 2, x .=. y, y .=. cnst 4 ]
+
+      e <- eliminate $ forall [x'] (x .=. cnst 2)
+
+      return (m, uc, i, e)
+    :}
+    (42,[(= (x : int) 2),(= (x : int) 1)],[(= (x : int) 2),(not (= (y : int) 4))],false)

@@ -1,5 +1,5 @@
 name:                expressions-z3
-version:             0.1.4
+version:             0.1.5
 synopsis:            Encode and Decode expressions from Z3 ASTs
 description:
   A simple interface for converting expressions back and forth between pure
