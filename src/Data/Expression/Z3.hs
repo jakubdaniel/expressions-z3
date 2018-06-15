@@ -153,11 +153,11 @@ instance IFromZ3 ConjunctionF
 instance ConjunctionF :<: g => IFromZ3Into ConjunctionF g where
     ifromZ3App _ _ "true" app = do
         guard . null =<< Z3.getAppArgs app
-        return . DynamicallySorted SBooleanSort $ true
+        return . toDynamicallySorted $ true
     ifromZ3App _ r "and" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just as -> return . DynamicallySorted SBooleanSort $ and as
+            Just as -> return . toDynamicallySorted . and $ as
             _ -> empty
     ifromZ3App _ _ _ _ = empty
 
@@ -165,11 +165,11 @@ instance IFromZ3 DisjunctionF
 instance DisjunctionF :<: g => IFromZ3Into DisjunctionF g where
     ifromZ3App _ _ "false" app = do
         guard . null =<< Z3.getAppArgs app
-        return . DynamicallySorted SBooleanSort $ false
+        return . toDynamicallySorted $ false
     ifromZ3App _ r "or" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just os -> return . DynamicallySorted SBooleanSort $ or os
+            Just os -> return . toDynamicallySorted . or $ os
             _ -> empty
     ifromZ3App _ _ _ _ = empty
 
@@ -179,7 +179,7 @@ instance NegationF :<: g => IFromZ3Into NegationF g where
         args <- mapM r =<< Z3.getAppArgs app
         guard (length args == 1)
         case toStaticallySorted (head args) of
-            Just n -> return . DynamicallySorted SBooleanSort $ not n
+            Just n -> return . toDynamicallySorted . not $ n
             _ -> empty
     ifromZ3App _ _ _ _ = empty
 
@@ -203,7 +203,7 @@ instance ( UniversalF v :<: g, SingI v ) => IFromZ3Into (UniversalF v) g where
             b    <- r =<< Z3.substituteVars a' bound
 
             case toStaticallySorted b of
-                Just b'' -> return . DynamicallySorted SBooleanSort $ forall (fromJust . mapM toStaticallySorted $ vs' :: [IFix VarF v]) b''
+                Just b'' -> return . toDynamicallySorted $ forall (fromJust . mapM toStaticallySorted $ vs' :: [IFix VarF v]) b''
                 _ -> empty
         where
 
@@ -226,7 +226,7 @@ instance ( ExistentialF v :<: g, SingI v ) => IFromZ3Into (ExistentialF v) g whe
             b    <- r =<< Z3.substituteVars a' bound
 
             case toStaticallySorted b of
-                Just b'' -> return . DynamicallySorted SBooleanSort $ exists (fromJust . mapM toStaticallySorted $ vs' :: [IFix VarF v]) b''
+                Just b'' -> return . toDynamicallySorted $ exists (fromJust . mapM toStaticallySorted $ vs' :: [IFix VarF v]) b''
                 _ -> empty
         where
 
@@ -246,42 +246,42 @@ instance EqualityF :<: g => IFromZ3Into EqualityF g where
 
             ifromZ3'' :: Z3.MonadZ3 z3 => [DynamicallySorted g] -> Decoder g z3 (DynamicallySorted g)
             ifromZ3'' [DynamicallySorted s1 a, DynamicallySorted s2 b] = case s1 %~ s2 of
-                Proved Refl -> return . DynamicallySorted SBooleanSort $ inject (Equals s1 a b)
+                Proved Refl -> return . toDynamicallySorted . inject $ Equals s1 a b
                 Disproved _ -> empty
             ifromZ3'' _ = empty
 
 instance IFromZ3 ArithmeticF
 instance ArithmeticF :<: g => IFromZ3Into ArithmeticF g where
-    ifromZ3Numeral _ c = return . DynamicallySorted SIntegralSort $ cnst c
+    ifromZ3Numeral _ c = return . toDynamicallySorted . cnst $ c
     ifromZ3App _ r "+" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just as -> return . DynamicallySorted SIntegralSort $ add as
+            Just as -> return . toDynamicallySorted . add $ as
             _ -> empty
     ifromZ3App _ r "*" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just ms -> return . DynamicallySorted SIntegralSort $ mul ms
+            Just ms -> return . toDynamicallySorted . mul $ ms
             _ -> empty
     ifromZ3App _ r "<" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just [k, l] -> return . DynamicallySorted SBooleanSort $ k .<. l
+            Just [k, l] -> return . toDynamicallySorted $ k .<. l
             _ -> empty
     ifromZ3App _ r ">" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just [k, l] -> return . DynamicallySorted SBooleanSort $ l .<. k
+            Just [k, l] -> return . toDynamicallySorted $ l .<. k
             _ -> empty
     ifromZ3App _ r "<=" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just [k, l] -> return . DynamicallySorted SBooleanSort $ k .<. l .+. cnst 1
+            Just [k, l] -> return . toDynamicallySorted $ k .<. l .+. cnst 1
             _ -> empty
     ifromZ3App _ r ">=" app = do
         args <- mapM r =<< Z3.getAppArgs app
         case mapM toStaticallySorted args of
-            Just [k, l] -> return . DynamicallySorted SBooleanSort $ l .<. k .+. cnst 1
+            Just [k, l] -> return . toDynamicallySorted $ l .<. k .+. cnst 1
             _ -> empty
     ifromZ3App _ r "=" app = do
         args <- Z3.getAppArgs app
@@ -310,7 +310,7 @@ instance ArithmeticF :<: g => IFromZ3Into ArithmeticF g where
                                                 c' <- fromIntegral <$> Z3.getInt c
                                                 n' <- r n
                                                 case toStaticallySorted n' of
-                                                    Just n'' -> return . DynamicallySorted SBooleanSort $ c' .\. n''
+                                                    Just n'' -> return . toDynamicallySorted $ c' .\. n''
                                                     _ -> empty
                                             _ -> empty
                                     _ -> empty

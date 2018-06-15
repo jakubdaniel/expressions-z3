@@ -64,7 +64,7 @@ library
   exposed-modules:     Data.Expression.Z3
   build-depends:       base >=4.9 && <4.12,
                        containers >=0.5 && <0.6,
-                       expressions >=0.1 && <0.2,
+                       expressions >=0.1.7 && <0.2,
                        singletons >=2.2 && <2.5,
                        transformers >=0.5.2 && <0.6,
                        list-t >=1.0 && <1.1,
