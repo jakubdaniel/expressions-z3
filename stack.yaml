@@ -2,5 +2,5 @@ resolver: nightly-2018-05-15
 packages:
 - .
 extra-deps:
-- expressions-0.1.8
+- expressions-0.2
 - z3-4.3.1
