@@ -1,6 +1,6 @@
-resolver: nightly-2018-05-15
+resolver: nightly-2018-09-29
 packages:
 - .
 extra-deps:
-- expressions-0.2
+- expressions-0.3
 - z3-4.3.1

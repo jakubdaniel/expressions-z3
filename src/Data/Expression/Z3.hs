@@ -147,7 +147,7 @@ instance VarF :<: g => IFromZ3Into VarF g where
     ifromZ3App _ _ name app = do
         guard . null =<< Z3.getAppArgs app
         DynamicSort s <- sortFromZ3 =<< Z3.getSort =<< Z3.appToAst app
-        return $ DynamicallySorted s (inject (Var name s))
+        return $ dynvar name s
 
 instance IFromZ3 ConjunctionF
 instance ConjunctionF :<: g => IFromZ3Into ConjunctionF g where
