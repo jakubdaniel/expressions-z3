@@ -47,7 +47,7 @@ import qualified Data.Functor.Const as F
 import qualified Data.Map as M
 import qualified Z3.Monad as Z3
 
-type Cache g = M.Map Z3.AST (DynamicallySorted g)
+type Cache g = M.Map Z3.AST (DynamicallySortedFix g)
 
 newtype Decoder g a b = Decoder { unwrap :: StateT (Cache g) (ListT a) b } deriving ( Functor, Applicative, Alternative, Monad, MonadIO )
 
@@ -120,9 +120,9 @@ toZ3 :: forall f (s :: Sort) z3. ( IToZ3 f, Z3.MonadZ3 z3 ) => IFix f s -> z3 Z3
 toZ3 = F.getConst . icata itoZ3
 
 class IFromZ3Into (f :: (Sort -> *) -> Sort -> *) (g :: (Sort -> *) -> Sort -> *) where
-    ifromZ3App        :: Z3.MonadZ3 z3 => Proxy f -> (Z3.AST -> Decoder g z3 (DynamicallySorted g)) -> String -> Z3.App           -> Decoder g z3 (DynamicallySorted g)
-    ifromZ3Quantifier :: Z3.MonadZ3 z3 => Proxy f -> (Z3.AST -> Decoder g z3 (DynamicallySorted g)) -> Bool -> [Z3.AST] -> Z3.AST -> Decoder g z3 (DynamicallySorted g)
-    ifromZ3Numeral    :: Z3.MonadZ3 z3 => Proxy f ->                                                   Int                        -> Decoder g z3 (DynamicallySorted g)
+    ifromZ3App        :: Z3.MonadZ3 z3 => Proxy f -> (Z3.AST -> Decoder g z3 (DynamicallySortedFix g)) -> String -> Z3.App           -> Decoder g z3 (DynamicallySortedFix g)
+    ifromZ3Quantifier :: Z3.MonadZ3 z3 => Proxy f -> (Z3.AST -> Decoder g z3 (DynamicallySortedFix g)) -> Bool -> [Z3.AST] -> Z3.AST -> Decoder g z3 (DynamicallySortedFix g)
+    ifromZ3Numeral    :: Z3.MonadZ3 z3 => Proxy f ->                                                   Int                           -> Decoder g z3 (DynamicallySortedFix g)
 
     ifromZ3App        _ _ _ _   = empty
     ifromZ3Quantifier _ _ _ _ _ = empty
@@ -183,7 +183,7 @@ instance NegationF :<: g => IFromZ3Into NegationF g where
             _ -> empty
     ifromZ3App _ _ _ _ = empty
 
-varFromZ3 :: Z3.MonadZ3 z3 => Z3.AST -> Decoder VarF z3 (DynamicallySorted VarF)
+varFromZ3 :: Z3.MonadZ3 z3 => Z3.AST -> Decoder VarF z3 (DynamicallySorted Var)
 varFromZ3 = ifromZ3 (Proxy :: Proxy (VarF :: (Sort -> *) -> Sort -> *)) varFromZ3
 
 local :: Z3.MonadZ3 z3 => Decoder VarF z3 a -> Decoder g z3 a
@@ -207,8 +207,8 @@ instance ( UniversalF v :<: g, SingI v ) => IFromZ3Into (UniversalF v) g where
                 _ -> empty
         where
 
-            isVSorted :: DynamicallySorted VarF -> Bool
-            isVSorted = isJust . ( toStaticallySorted :: DynamicallySorted VarF -> Maybe (IFix VarF v) )
+            isVSorted :: DynamicallySorted Var -> Bool
+            isVSorted = isJust . ( toStaticallySorted :: DynamicallySorted Var -> Maybe (IFix VarF v) )
 
     ifromZ3Quantifier _ _ _ _ _ = empty
 
@@ -230,8 +230,8 @@ instance ( ExistentialF v :<: g, SingI v ) => IFromZ3Into (ExistentialF v) g whe
                 _ -> empty
         where
 
-            isVSorted :: DynamicallySorted VarF -> Bool
-            isVSorted = isJust . ( toStaticallySorted :: DynamicallySorted VarF -> Maybe (IFix VarF v) )
+            isVSorted :: DynamicallySorted Var -> Bool
+            isVSorted = isJust . ( toStaticallySorted :: DynamicallySorted Var -> Maybe (IFix VarF v) )
 
     ifromZ3Quantifier _ _ _ _ _ = empty
 
@@ -244,7 +244,7 @@ instance EqualityF :<: g => IFromZ3Into EqualityF g where
 
         where
 
-            ifromZ3'' :: Z3.MonadZ3 z3 => [DynamicallySorted g] -> Decoder g z3 (DynamicallySorted g)
+            ifromZ3'' :: Z3.MonadZ3 z3 => [DynamicallySortedFix g] -> Decoder g z3 (DynamicallySortedFix g)
             ifromZ3'' [DynamicallySorted s1 a, DynamicallySorted s2 b] = case s1 %~ s2 of
                 Proved Refl -> return . toDynamicallySorted . inject $ Equals s1 a b
                 Disproved _ -> empty
@@ -357,7 +357,7 @@ ifromZ3 :: forall (f :: (Sort -> *) -> Sort -> *)
                   (g :: (Sort -> *) -> Sort -> *)
                   z3.
            ( IFromZ3Into f g, Z3.MonadZ3 z3 )
-         => Proxy f -> (Z3.AST -> Decoder g z3 (DynamicallySorted g)) -> Z3.AST -> Decoder g z3 (DynamicallySorted g)
+         => Proxy f -> (Z3.AST -> Decoder g z3 (DynamicallySortedFix g)) -> Z3.AST -> Decoder g z3 (DynamicallySortedFix g)
 ifromZ3 p r a = do
     c <- Decoder $ get
     if a `M.member` c then do
